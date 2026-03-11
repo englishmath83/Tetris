@@ -2,481 +2,275 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>박영수의 블록 퍼즐</title>
+    <title>박영수의 테트리스</title>
     <style>
-        /* CSS: 게임 디자인 */
         body {
-            background-color: #2e1a53; /* 어두운 보라색 배경 */
+            background-color: #2e1a53;
             color: #fff;
             font-family: 'Malgun Gothic', sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             height: 100vh;
             margin: 0;
-            overflow: hidden; /* 스크롤 방지 */
         }
         #game-wrapper {
-            width: 360px;
-            height: 640px;
-            background: radial-gradient(circle, #4c2f81 0%, #2e1a53 100%); /* 그라데이션 */
+            background: #1a0f30;
+            padding: 20px;
             border-radius: 20px;
-            border: 4px solid #1a0f30;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
             align-items: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            padding: 10px;
-            box-sizing: border-box;
         }
-
-        /* 상단 점수판 */
         #header {
-            width: 90%;
-            height: 80px;
-            background-color: rgba(0,0,0,0.2);
+            width: 100%;
+            background: rgba(255,255,255,0.05);
             border-radius: 10px;
             display: flex;
             justify-content: space-around;
-            align-items: center;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
-        .score-box { text-align: center; }
-        .score-box .label { color: #8ad6ff; font-size: 14px; margin-bottom: 3px; }
-        .score-box .value { color: #fff; font-size: 24px; }
-
-        /* 게임 보드 */
-        #game-container {
-            width: 320px;
-            height: 320px;
-            border: 4px solid #007aff; /* 파란색 테두리 */
-            background-color: #1a0f30; /* 어두운 게임판 내부 */
-            border-radius: 5px;
-            position: relative;
-            display: grid;
-            grid-template-columns: repeat(10, 1fr);
-            grid-template-rows: repeat(10, 1fr);
-            box-shadow: 0 0 15px #007aff inset; /* 내부 광채 */
-        }
-        .grid-cell {
-            border: 0.5px solid rgba(255,255,255,0.05); /* 격자 */
-        }
-
-        /* 배치된 블록 */
-        .block {
-            position: absolute;
-            box-sizing: border-box;
-            background-color: #fff;
-            border-radius: 2px;
-            box-shadow: 1px 1px 1px rgba(0,0,0,0.3) inset;
-        }
-        
-        /* 하단 블록 후보 영역 */
-        #blocks-container {
-            width: 90%;
-            height: 140px;
-            background-color: #1a0f30;
-            border: 3px solid #007aff;
-            border-radius: 10px;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            margin-top: auto; /* 하단 고정 */
+            padding: 10px 0;
             margin-bottom: 20px;
+        }
+        .score-label { color: #8ad6ff; font-size: 12px; margin-bottom: 5px; }
+        .score-value { font-size: 24px; font-weight: bold; }
+
+        /* 메인 게임판 */
+        #tetris {
+            border: 4px solid #007aff;
+            background-color: #000;
+            box-shadow: 0 0 15px #007aff;
+        }
+
+        /* 다음 블록 예측 박스 */
+        #next-container {
+            margin-top: 20px;
+            width: 240px;
+            height: 80px;
+            border: 3px solid #007aff;
+            background: #000;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
             box-shadow: 0 0 10px #007aff inset;
         }
-        .dock-slot {
-            width: 30%;
-            height: 90%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
+        .next-preview {
+            width: 60px;
+            height: 60px;
         }
-        .draggable-piece {
-            position: absolute;
-            cursor: grab;
-            transition: transform 0.1s;
-        }
-        .dragging { cursor: grabbing; transform: scale(1.1); } /* 드래그 중인 블록 */
-
-        /* 게임 오버 */
-        #game-over {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
-            color: #ff3333;
-            font-size: 40px;
-            padding: 20px;
-            border-radius: 10px;
-            display: none;
-            z-index: 10;
-        }
-        
-        /* 반응형 */
-        @media (max-width: 400px) {
-            #game-wrapper { width: 100vw; height: 100vh; border-radius: 0; }
-            #game-container { width: 90vw; height: 90vw; }
-        }
+        .info { margin-top: 15px; font-size: 13px; color: #aaa; }
     </style>
 </head>
 <body>
 
     <div id="game-wrapper">
         <div id="header">
-            <div class="score-box">
-                <div class="label">HIGH</div>
-                <div id="high-score" class="value">0</div>
+            <div style="text-align: center;">
+                <div class="score-label">HIGH</div>
+                <div id="high-score" class="score-value">0</div>
             </div>
-            <div class="score-box">
-                <div class="label">SCORE</div>
-                <div id="score" class="value">0</div>
+            <div style="text-align: center;">
+                <div class="score-label">SCORE</div>
+                <div id="score" class="score-value">0</div>
             </div>
-            <div style="width: 40px;"> </div>
         </div>
 
-        <div id="game-container">
-            </div>
+        <canvas id="tetris" width="240" height="400"></canvas>
 
-        <div id="blocks-container">
-            <div class="dock-slot" id="dock-0"></div>
-            <div class="dock-slot" id="dock-1"></div>
-            <div class="dock-slot" id="dock-2"></div>
+        <div id="next-container">
+            <canvas id="next0" width="60" height="60"></canvas>
+            <canvas id="next1" width="60" height="60"></canvas>
+            <canvas id="next2" width="60" height="60"></canvas>
         </div>
 
-        <div id="game-over">Game Over</div>
+        <div class="info">Space: 회전 | 화살표: 이동 및 낙하</div>
     </div>
 
     <script>
-        /**
-         * JavaScript: 블록 퍼즐 게임 로직
-         */
-        const CONFIG = {
-            rows: 10,
-            cols: 10,
-            highScoreKey: '박영수BlockPuzzle_High'
-        };
+        const canvas = document.getElementById('tetris');
+        const context = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('high-score');
 
-        let currentPieces = []; // 하단 3개 후보
-        let gameState = { score: 0, highScore: 0, gameOver: false };
-        let draggedPiece = null;
-        let originalSlot = null;
-        let dragOffsetX, dragOffsetY;
+        context.scale(20, 20);
 
-        // 블록 모양 및 색상 정의
-        const PIECES_DEF = [
-            { shape: [[1]], color: '#FFE138' }, // 1x1 황금색
-            { shape: [[1,1]], color: '#FF8E0D' }, // 1x2 주황
-            { shape: [[1,1,1]], color: '#FF0D72' }, // 1x3 분홍
-            { shape: [[1,1],[1,1]], color: '#FFE138' }, // 2x2 황금색
-            { shape: [[0,1,0],[1,1,1]], color: '#F538FF' }, // T 분홍
-            { shape: [[1,1,0],[0,1,1]], color: '#0DFF72' }, // S 초록
-            { shape: [[1,0],[1,0],[1,1]], color: '#FFE138' }, // L 황금색
-            { shape: [[0,1],[0,1],[1,1]], color: '#F538FF' }  // J 분홍
-        ];
+        const colors = [null, '#FF0D72', '#0DC2FF', '#0DFF72', '#F538FF', '#FF8E0D', '#FFE138', '#3877FF'];
+        const pieces = 'ILJOTSZ';
+        let nextQueue = []; // 다음 블록들을 담을 큐
 
-        function init() {
-            createGrid();
-            gameState.highScore = localStorage.getItem(CONFIG.highScoreKey) || 0;
-            updateScoreUI();
-            refillDocker();
+        function createPiece(type) {
+            if (type === 'I') return [[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]];
+            if (type === 'L') return [[0,2,0],[0,2,0],[0,2,2]];
+            if (type === 'J') return [[0,3,0],[0,3,0],[3,3,0]];
+            if (type === 'O') return [[4,4],[4,4]];
+            if (type === 'Z') return [[5,5,0],[0,5,5],[0,0,0]];
+            if (type === 'S') return [[0,6,6],[6,6,0],[0,0,0]];
+            if (type === 'T') return [[0,7,0],[7,7,7],[0,0,0]];
         }
 
-        // 10x10 격자 생성
-        function createGrid() {
-            const container = document.getElementById('game-container');
-            container.innerHTML = ''; // 초기화
-            for (let r = 0; r < CONFIG.rows; r++) {
-                for (let c = 0; c < CONFIG.cols; c++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'grid-cell';
-                    cell.id = `cell-${r}-${c}`;
-                    container.appendChild(cell);
-                }
+        // 큐를 채우고 미리보기 그리기
+        function updateNextQueue() {
+            while (nextQueue.length < 4) {
+                nextQueue.push(pieces[pieces.length * Math.random() | 0]);
             }
-        }
-
-        function refillDocker() {
             for (let i = 0; i < 3; i++) {
-                currentPieces[i] = generatePiece();
-                drawPieceToDock(currentPieces[i], i);
+                drawPreview(nextQueue[i + 1], i);
             }
         }
 
-        function generatePiece() {
-            const def = PIECES_DEF[Math.floor(Math.random() * PIECES_DEF.length)];
-            return JSON.parse(JSON.stringify(def)); // 깊은 복사
-        }
-
-        // 하단 도킹 영역에 블록 그리기
-        function drawPieceToDock(pieceData, slotIndex) {
-            const slot = document.getElementById(`dock-${slotIndex}`);
-            slot.innerHTML = ''; // 기존 블록 제거
+        function drawPreview(type, index) {
+            const previewCanvas = document.getElementById(`next${index}`);
+            const ctx = previewCanvas.getContext('2d');
+            const matrix = createPiece(type);
+            ctx.clearRect(0, 0, 60, 60);
+            ctx.fillStyle = colors[pieces.indexOf(type) + 1];
             
-            const pieceDiv = document.createElement('div');
-            pieceDiv.className = 'draggable-piece';
-            pieceDiv.id = `piece-docker-${slotIndex}`;
-            pieceDiv.dataset.index = slotIndex;
-            
-            const cellSize = 15; // 도크 안 블록 크기
-
-            pieceData.shape.forEach((row, r) => {
-                row.forEach((cell, c) => {
-                    if (cell) {
-                        const block = document.createElement('div');
-                        block.className = 'block';
-                        block.style.width = cellSize + 'px';
-                        block.style.height = cellSize + 'px';
-                        block.style.left = c * (cellSize+1) + 'px'; // 격자 사이 1px 여백
-                        block.style.top = r * (cellSize+1) + 'px';
-                        block.style.backgroundColor = pieceData.color;
-                        pieceDiv.appendChild(block);
+            const size = 12; // 프리뷰 블록 크기
+            matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        ctx.fillRect(x * size + 10, y * size + 10, size - 1, size - 1);
                     }
                 });
             });
-
-            slot.appendChild(pieceDiv);
-            pieceDiv.addEventListener('mousedown', onDragStart); // 마우스
-            pieceDiv.addEventListener('touchstart', onDragStart); // 터치
         }
 
-        // 드래그 시작
-        function onDragStart(e) {
-            if (gameState.gameOver) return;
-            draggedPiece = e.currentTarget;
-            originalSlot = draggedPiece.parentNode;
-            
-            draggedPiece.classList.add('dragging');
-            
-            // 터치/마우스 위치 통합 처리
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-            const rect = draggedPiece.getBoundingClientRect();
-            dragOffsetX = clientX - rect.left;
-            dragOffsetY = clientY - rect.top;
-
-            // 드래그 중인 조각을 body로 옮겨서 오버레이 처리
-            document.body.appendChild(draggedPiece);
-            movePieceAt(clientX, clientY);
-
-            // 이동/드롭 이벤트 등록
-            document.addEventListener('mousemove', onDragMove);
-            document.addEventListener('mouseup', onDragEnd);
-            document.addEventListener('touchmove', onDragMove);
-            document.addEventListener('touchend', onDragEnd);
-        }
-
-        // 드래그 중
-        function onDragMove(e) {
-            if (!draggedPiece) return;
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            movePieceAt(clientX, clientY);
-        }
-
-        function movePieceAt(x, y) {
-            draggedPiece.style.left = x - dragOffsetX + 'px';
-            draggedPiece.style.top = y - dragOffsetY + 'px';
-        }
-
-        // 드래그 종료 (드롭)
-        function onDragEnd(e) {
-            if (!draggedPiece) return;
-            
-            draggedPiece.classList.remove('dragging');
-            const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-            const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-            
-            const dropResult = findDropCell(clientX, clientY);
-
-            if (dropResult) {
-                placePiece(dropResult.r, dropResult.c);
-            } else {
-                // 제자리로 복귀
-                originalSlot.appendChild(draggedPiece);
-                draggedPiece.style.left = '50%';
-                draggedPiece.style.top = '50%';
-                draggedPiece.style.transform = 'translate(-50%, -50%)';
+        function collide(arena, player) {
+            const [m, o] = [player.matrix, player.pos];
+            for (let y = 0; y < m.length; ++y) {
+                for (let x = 0; x < m[y].length; ++x) {
+                    if (m[y][x] !== 0 && (arena[y + o.y] && arena[y + o.y][x + o.x]) !== 0) return true;
+                }
             }
-
-            // 이벤트 해제
-            document.removeEventListener('mousemove', onDragMove);
-            document.removeEventListener('mouseup', onDragEnd);
-            document.removeEventListener('touchmove', onDragMove);
-            document.removeEventListener('touchend', onDragEnd);
-            draggedPiece = null;
+            return false;
         }
 
-        // 마우스 위치에서 어떤 격자에 드롭되었는지 확인
-        function findDropCell(x, y) {
-            const container = document.getElementById('game-container');
-            const rect = container.getBoundingClientRect();
-
-            if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) return null;
-
-            const col = Math.floor((x - rect.left) / (rect.width / CONFIG.cols));
-            const row = Math.floor((y - rect.top) / (rect.height / CONFIG.rows));
-            
-            return { r: row, c: col };
+        function createMatrix(w, h) {
+            return Array.from({length: h}, () => new Array(w).fill(0));
         }
 
-        // 블록 배치 로직
-        function placePiece(r, c) {
-            const pieceIndex = draggedPiece.dataset.index;
-            const pieceData = currentPieces[pieceIndex];
-            
-            if (!canPlace(pieceData, r, c)) {
-                // 배치 불가 -> 복구
-                originalSlot.appendChild(draggedPiece);
-                draggedPiece.style.left = '50%';
-                draggedPiece.style.top = '50%';
-                draggedPiece.style.transform = 'translate(-50%, -50%)';
-                return;
-            }
+        function draw() {
+            context.fillStyle = '#000';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            drawMatrix(arena, {x: 0, y: 0});
+            drawMatrix(player.matrix, player.pos);
+        }
 
-            // 실제 격자에 블록 추가
-            pieceData.shape.forEach((row, pr) => {
-                row.forEach((cell, pc) => {
-                    if (cell) {
-                        const targetRow = r + pr;
-                        const targetCol = c + pc;
-                        const block = document.createElement('div');
-                        block.className = 'block on-grid';
-                        block.dataset.r = targetRow;
-                        block.dataset.c = targetCol;
-                        block.style.backgroundColor = pieceData.color;
-                        block.style.width = '30px'; // 320px/10 - 여백
-                        block.style.height = '30px';
-                        block.style.left = targetCol * 32 + 1 + 'px'; 
-                        block.style.top = targetRow * 32 + 1 + 'px';
-                        document.getElementById('game-container').appendChild(block);
+        function drawMatrix(matrix, offset) {
+            matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        context.fillStyle = colors[value];
+                        context.fillRect(x + offset.x, y + offset.y, 1, 1);
                     }
                 });
             });
+        }
 
-            // 점수 추가 및 슬롯 비우기
-            let blocksPlacedCount = 0;
-            pieceData.shape.forEach(row => row.forEach(c => c && blocksPlacedCount++));
-            gameState.score += blocksPlacedCount * 10;
+        function merge(arena, player) {
+            player.matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) arena[y + player.pos.y][x + player.pos.x] = value;
+                });
+            });
+        }
+
+        function playerDrop() {
+            player.pos.y++;
+            if (collide(arena, player)) {
+                player.pos.y--;
+                merge(arena, player);
+                playerReset();
+                arenaSweep();
+            }
+            dropCounter = 0;
+        }
+
+        function playerReset() {
+            if (nextQueue.length === 0) updateNextQueue();
             
-            // 원래 슬롯 비우기
-            originalSlot.innerHTML = '';
-            currentPieces[pieceIndex] = null;
-            draggedPiece.remove(); // body에 떠있던 draggedPiece 제거
+            const type = nextQueue.shift(); // 큐에서 하나 꺼냄
+            player.matrix = createPiece(type);
+            updateNextQueue(); // 부족한 큐 채우기
 
-            // 줄 삭제 확인
-            checkSweep();
-            updateScoreUI();
-
-            // 도커가 다 비었으면 새로 채움
-            if (currentPieces.every(p => p === null)) {
-                refillDocker();
-            }
-
-            // 게임 오버 확인
-            if (checkGameOver()) {
-                endGame();
+            player.pos.y = 0;
+            player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+            
+            if (collide(arena, player)) {
+                arena.forEach(row => row.fill(0));
+                if (player.score > player.highScore) {
+                    player.highScore = player.score;
+                    highScoreElement.innerText = player.highScore;
+                }
+                player.score = 0;
+                scoreElement.innerText = 0;
             }
         }
 
-        // 배치 가능한지 확인
-        function canPlace(pieceData, startR, startC) {
-            const shape = pieceData.shape;
-            for (let pr = 0; pr < shape.length; pr++) {
-                for (let pc = 0; pc < shape[pr].length; pc++) {
-                    if (shape[pr][pc]) {
-                        const targetR = startR + pr;
-                        const targetC = startC + pc;
-                        if (targetR >= CONFIG.rows || targetC >= CONFIG.cols || isCellFilled(targetR, targetC)) {
-                            return false;
-                        }
-                    }
+        function arenaSweep() {
+            let rowCount = 1;
+            outer: for (let y = arena.length - 1; y > 0; --y) {
+                for (let x = 0; x < arena[y].length; ++x) {
+                    if (arena[y][x] === 0) continue outer;
+                }
+                const row = arena.splice(y, 1)[0].fill(0);
+                arena.unshift(row);
+                ++y;
+                player.score += rowCount * 10;
+                rowCount *= 2;
+            }
+            scoreElement.innerText = player.score;
+        }
+
+        function rotate(matrix, dir) {
+            for (let y = 0; y < matrix.length; ++y) {
+                for (let x = 0; x < y; ++x) [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+            }
+            if (dir > 0) matrix.forEach(row => row.reverse()); else matrix.reverse();
+        }
+
+        function playerRotate(dir) {
+            const pos = player.pos.x;
+            let offset = 1;
+            rotate(player.matrix, dir);
+            while (collide(arena, player)) {
+                player.pos.x += offset;
+                offset = -(offset + (offset > 0 ? 1 : -1));
+                if (offset > player.matrix[0].length) {
+                    rotate(player.matrix, -dir);
+                    player.pos.x = pos;
+                    return;
                 }
             }
-            return true;
         }
 
-        function isCellFilled(r, c) {
-            return document.querySelector(`.block.on-grid[data-r="${r}"][data-c="${c}"]`) !== null;
+        let dropCounter = 0;
+        let dropInterval = 1000;
+        let lastTime = 0;
+
+        function update(time = 0) {
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) playerDrop();
+            draw();
+            requestAnimationFrame(update);
         }
 
-        // 한 줄 삭제 로직
-        function checkSweep() {
-            let clearedLines = 0;
-            const rowsToRemove = [];
-            const colsToRemove = [];
+        const arena = createMatrix(12, 20);
+        const player = { pos: {x: 0, y: 0}, matrix: null, score: 0, highScore: 0 };
 
-            // 가로 줄 확인
-            for (let r = 0; r < CONFIG.rows; r++) {
-                let filled = true;
-                for (let c = 0; c < CONFIG.cols; c++) {
-                    if (!isCellFilled(r, c)) { filled = false; break; }
-                }
-                if (filled) rowsToRemove.push(r);
-            }
+        document.addEventListener('keydown', event => {
+            if (event.keyCode === 37) player.pos.x--; if (collide(arena, player)) player.pos.x++;
+            else if (event.keyCode === 39) player.pos.x++; if (collide(arena, player)) player.pos.x--;
+            else if (event.keyCode === 40) playerDrop();
+            else if (event.keyCode === 32) playerRotate(1);
+        });
 
-            // 세로 줄 확인
-            for (let c = 0; c < CONFIG.cols; c++) {
-                let filled = true;
-                for (let r = 0; r < CONFIG.rows; r++) {
-                    if (!isCellFilled(r, c)) { filled = false; break; }
-                }
-                if (filled) colsToRemove.push(c);
-            }
-
-            // 줄 지우기 및 점수
-            rowsToRemove.forEach(r => {
-                const blocks = document.querySelectorAll(`.block.on-grid[data-r="${r}"]`);
-                blocks.forEach(b => b.remove());
-                clearedLines++;
-            });
-            colsToRemove.forEach(c => {
-                const blocks = document.querySelectorAll(`.block.on-grid[data-c="${c}"]`);
-                blocks.forEach(b => b.remove());
-                clearedLines++;
-            });
-
-            if (clearedLines > 0) {
-                gameState.score += (clearedLines * clearedLines) * 100; // 보너스 점수
-            }
-        }
-
-        function updateScoreUI() {
-            document.getElementById('score').innerText = gameState.score;
-            if (gameState.score > gameState.highScore) {
-                gameState.highScore = gameState.score;
-                localStorage.setItem(CONFIG.highScoreKey, gameState.highScore);
-            }
-            document.getElementById('high-score').innerText = gameState.highScore;
-        }
-
-        // 게임 오버 확인 (남은 조각이 어디에도 들어갈 수 없을 때)
-        function checkGameOver() {
-            for (let i = 0; i < currentPieces.length; i++) {
-                if (currentPieces[i]) {
-                    for (let r = 0; r < CONFIG.rows; r++) {
-                        for (let c = 0; c < CONFIG.cols; c++) {
-                            if (canPlace(currentPieces[i], r, c)) {
-                                return false; // 하나라도 배치 가능하면 게임 계속
-                            }
-                        }
-                    }
-                }
-            }
-            return true; // 모두 배치 불가
-        }
-
-        function endGame() {
-            gameState.gameOver = true;
-            document.getElementById('game-over').style.display = 'block';
-        }
-
-        init();
+        playerReset();
+        update();
     </script>
 </body>
 </html>
