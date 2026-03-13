@@ -2,11 +2,12 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>박영수의 테트리스</title>
+    <title>우리학교 캐릭터 테트리스</title>
     <style>
         body {
-            background-color: #2e1a53;
-            color: #fff;
+            /* 캐릭터 색상에 맞춘 배경색 */
+            background-color: #ffeff5; 
+            color: #333;
             font-family: 'Malgun Gothic', sans-serif;
             display: flex;
             flex-direction: column;
@@ -16,51 +17,68 @@
             margin: 0;
         }
         #game-wrapper {
-            background: #1a0f30;
+            background: #ffffff;
             padding: 20px;
             border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.3);
             display: flex;
             flex-direction: column;
             align-items: center;
+            position: relative;
         }
         #header {
             width: 100%;
-            background: rgba(255,255,255,0.05);
+            background: #fff0f5;
             border-radius: 10px;
             display: flex;
             justify-content: space-around;
             padding: 10px 0;
             margin-bottom: 20px;
+            border: 2px solid #ffb6c1;
         }
-        .score-label { color: #8ad6ff; font-size: 12px; margin-bottom: 5px; }
-        .score-value { font-size: 24px; font-weight: bold; }
+        .score-label { color: #ff69b4; font-size: 12px; margin-bottom: 5px; font-weight: bold; }
+        .score-value { font-size: 24px; font-weight: bold; color: #ff1493; }
 
-        /* 메인 게임판 */
+        /* 게임판 컨테이너: 배경 이미지를 넣기 위해 감싸줍니다 */
+        #canvas-container {
+            position: relative;
+            line-height: 0;
+        }
+        
+        /* 학교 캐릭터 배경 */
+        #school-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            opacity: 0.2; /* 게임 방해 안 되게 투명도 조절 */
+            z-index: 0;
+            pointer-events: none;
+        }
+
         #tetris {
-            border: 4px solid #007aff;
-            background-color: #000;
-            box-shadow: 0 0 15px #007aff;
+            border: 5px solid #ffb6c1;
+            background-color: rgba(255, 255, 255, 0.8); /* 배경이 살짝 비치도록 */
+            box-shadow: 0 0 15px rgba(255, 182, 193, 0.5);
+            position: relative;
+            z-index: 1;
         }
 
-        /* 다음 블록 예측 박스 */
         #next-container {
             margin-top: 20px;
             width: 240px;
             height: 80px;
-            border: 3px solid #007aff;
-            background: #000;
+            border: 3px solid #ffd700; /* 캐릭터의 노란색 리본 포인트 */
+            background: #fffdf0;
             border-radius: 10px;
             display: flex;
             justify-content: space-around;
             align-items: center;
-            box-shadow: 0 0 10px #007aff inset;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.2) inset;
         }
-        .next-preview {
-            width: 60px;
-            height: 60px;
-        }
-        .info { margin-top: 15px; font-size: 13px; color: #aaa; }
+        .next-preview { width: 60px; height: 60px; }
+        .info { margin-top: 15px; font-size: 13px; color: #ff69b4; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -68,7 +86,7 @@
     <div id="game-wrapper">
         <div id="header">
             <div style="text-align: center;">
-                <div class="score-label">HIGH</div>
+                <div class="score-label">BEST</div>
                 <div id="high-score" class="score-value">0</div>
             </div>
             <div style="text-align: center;">
@@ -77,7 +95,10 @@
             </div>
         </div>
 
-        <canvas id="tetris" width="240" height="400"></canvas>
+        <div id="canvas-container">
+            <img src="school_logo.png" id="school-bg" alt="School Mascot">
+            <canvas id="tetris" width="240" height="400"></canvas>
+        </div>
 
         <div id="next-container">
             <canvas id="next0" width="60" height="60"></canvas>
@@ -96,9 +117,20 @@
 
         context.scale(20, 20);
 
-        const colors = [null, '#FF0D72', '#0DC2FF', '#0DFF72', '#F538FF', '#FF8E0D', '#FFE138', '#3877FF'];
+        // 블록 색상을 캐릭터의 분홍/노랑/초록 톤으로 변경
+        const colors = [
+            null, 
+            '#FF69B4', // 핫핑크
+            '#FFB6C1', // 라이트핑크
+            '#FFD700', // 골드(리본색)
+            '#98FB98', // 연한초록(머리장식)
+            '#FF8C00', // 오렌지
+            '#BA55D3', // 퍼플
+            '#40E0D0'  // 터쿼이즈
+        ];
+        
         const pieces = 'ILJOTSZ';
-        let nextQueue = []; // 다음 블록들을 담을 큐
+        let nextQueue = [];
 
         function createPiece(type) {
             if (type === 'I') return [[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]];
@@ -110,7 +142,6 @@
             if (type === 'T') return [[0,7,0],[7,7,7],[0,0,0]];
         }
 
-        // 큐를 채우고 미리보기 그리기
         function updateNextQueue() {
             while (nextQueue.length < 4) {
                 nextQueue.push(pieces[pieces.length * Math.random() | 0]);
@@ -127,7 +158,7 @@
             ctx.clearRect(0, 0, 60, 60);
             ctx.fillStyle = colors[pieces.indexOf(type) + 1];
             
-            const size = 12; // 프리뷰 블록 크기
+            const size = 12;
             matrix.forEach((row, y) => {
                 row.forEach((value, x) => {
                     if (value !== 0) {
@@ -152,8 +183,8 @@
         }
 
         function draw() {
-            context.fillStyle = '#000';
-            context.fillRect(0, 0, canvas.width, canvas.height);
+            // 배경을 투명하게 지워서 뒤의 캐릭터 이미지가 보이게 함
+            context.clearRect(0, 0, canvas.width, canvas.height);
             drawMatrix(arena, {x: 0, y: 0});
             drawMatrix(player.matrix, player.pos);
         }
@@ -163,7 +194,11 @@
                 row.forEach((value, x) => {
                     if (value !== 0) {
                         context.fillStyle = colors[value];
+                        // 블록 테두리를 살짝 그려서 더 예쁘게 만듦
                         context.fillRect(x + offset.x, y + offset.y, 1, 1);
+                        context.lineWidth = 0.05;
+                        context.strokeStyle = 'white';
+                        context.strokeRect(x + offset.x, y + offset.y, 1, 1);
                     }
                 });
             });
@@ -190,14 +225,11 @@
 
         function playerReset() {
             if (nextQueue.length === 0) updateNextQueue();
-            
-            const type = nextQueue.shift(); // 큐에서 하나 꺼냄
+            const type = nextQueue.shift();
             player.matrix = createPiece(type);
-            updateNextQueue(); // 부족한 큐 채우기
-
+            updateNextQueue();
             player.pos.y = 0;
             player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
-            
             if (collide(arena, player)) {
                 arena.forEach(row => row.fill(0));
                 if (player.score > player.highScore) {
@@ -263,10 +295,17 @@
         const player = { pos: {x: 0, y: 0}, matrix: null, score: 0, highScore: 0 };
 
         document.addEventListener('keydown', event => {
-            if (event.keyCode === 37) player.pos.x--; if (collide(arena, player)) player.pos.x++;
-            else if (event.keyCode === 39) player.pos.x++; if (collide(arena, player)) player.pos.x--;
-            else if (event.keyCode === 40) playerDrop();
-            else if (event.keyCode === 32) playerRotate(1);
+            if (event.keyCode === 37) {
+                player.pos.x--;
+                if (collide(arena, player)) player.pos.x++;
+            } else if (event.keyCode === 39) {
+                player.pos.x++;
+                if (collide(arena, player)) player.pos.x--;
+            } else if (event.keyCode === 40) {
+                playerDrop();
+            } else if (event.keyCode === 32) {
+                playerRotate(1);
+            }
         });
 
         playerReset();
