@@ -2,86 +2,107 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>우리학교 캐릭터 테트리스</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>마산무학여고 테트리스</title>
     <style>
         body {
-            /* 캐릭터 색상에 맞춘 배경색 */
             background-color: #ffeff5; 
             color: #333;
-            font-family: 'Malgun Gothic', sans-serif;
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start; /* 상단부터 배치 */
             height: 100vh;
             margin: 0;
+            padding-top: 20px;
         }
+
+        /* 게임 제목 스타일 */
+        #game-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ff1493;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(255, 182, 193, 0.5);
+            background: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            border: 3px solid #ffb6c1;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
         #game-wrapper {
             background: #ffffff;
-            padding: 20px;
+            padding: 15px;
             border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.3);
+            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.2);
             display: flex;
             flex-direction: column;
             align-items: center;
             position: relative;
         }
+
         #header {
             width: 100%;
             background: #fff0f5;
             border-radius: 10px;
             display: flex;
             justify-content: space-around;
-            padding: 10px 0;
-            margin-bottom: 20px;
+            padding: 8px 0;
+            margin-bottom: 15px;
             border: 2px solid #ffb6c1;
         }
-        .score-label { color: #ff69b4; font-size: 12px; margin-bottom: 5px; font-weight: bold; }
-        .score-value { font-size: 24px; font-weight: bold; color: #ff1493; }
 
-        /* 게임판 컨테이너: 배경 이미지를 넣기 위해 감싸줍니다 */
+        .score-label { color: #ff69b4; font-size: 11px; margin-bottom: 2px; font-weight: bold; }
+        .score-value { font-size: 20px; font-weight: bold; color: #ff1493; }
+
         #canvas-container {
             position: relative;
             line-height: 0;
         }
         
-        /* 학교 캐릭터 배경 */
         #school-bg {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 80%;
-            opacity: 0.2; /* 게임 방해 안 되게 투명도 조절 */
+            width: 85%;
+            opacity: 0.25;
             z-index: 0;
             pointer-events: none;
         }
 
         #tetris {
             border: 5px solid #ffb6c1;
-            background-color: rgba(255, 255, 255, 0.8); /* 배경이 살짝 비치도록 */
-            box-shadow: 0 0 15px rgba(255, 182, 193, 0.5);
+            background-color: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 15px rgba(255, 182, 193, 0.3);
             position: relative;
             z-index: 1;
+            /* 모바일 화면 대응을 위해 최대 너비 제한 */
+            max-width: 90vw;
+            height: auto;
         }
 
         #next-container {
-            margin-top: 20px;
-            width: 240px;
-            height: 80px;
-            border: 3px solid #ffd700; /* 캐릭터의 노란색 리본 포인트 */
+            margin-top: 15px;
+            width: 100%;
+            max-width: 240px;
+            height: 70px;
+            border: 3px solid #ffd700;
             background: #fffdf0;
             border-radius: 10px;
             display: flex;
             justify-content: space-around;
             align-items: center;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.2) inset;
         }
-        .next-preview { width: 60px; height: 60px; }
-        .info { margin-top: 15px; font-size: 13px; color: #ff69b4; font-weight: bold; }
+
+        .info { margin-top: 15px; font-size: 12px; color: #ff69b4; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
+
+    <div id="game-title">마산무학여고 테트리스 게임</div>
 
     <div id="game-wrapper">
         <div id="header">
@@ -96,7 +117,7 @@
         </div>
 
         <div id="canvas-container">
-            <img src="school_logo.png" id="school-bg" alt="School Mascot">
+            <img src="school_logo.png" id="school-bg" alt="Masan Muhak">
             <canvas id="tetris" width="240" height="400"></canvas>
         </div>
 
@@ -106,10 +127,12 @@
             <canvas id="next2" width="60" height="60"></canvas>
         </div>
 
-        <div class="info">Space: 회전 | 화살표: 이동 및 낙하</div>
+        <div class="info">Space: 회전 | 화살표: 이동 및 낙하<br>(모바일은 키보드 연결 시 가능)</div>
     </div>
 
     <script>
+        // 스크립트 부분은 로직이 동일하므로 위 답변의 코드를 그대로 사용하시되,
+        // 색상값만 테마에 맞게 유지됩니다.
         const canvas = document.getElementById('tetris');
         const context = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
@@ -117,18 +140,7 @@
 
         context.scale(20, 20);
 
-        // 블록 색상을 캐릭터의 분홍/노랑/초록 톤으로 변경
-        const colors = [
-            null, 
-            '#FF69B4', // 핫핑크
-            '#FFB6C1', // 라이트핑크
-            '#FFD700', // 골드(리본색)
-            '#98FB98', // 연한초록(머리장식)
-            '#FF8C00', // 오렌지
-            '#BA55D3', // 퍼플
-            '#40E0D0'  // 터쿼이즈
-        ];
-        
+        const colors = [null, '#FF69B4', '#FFB6C1', '#FFD700', '#98FB98', '#FF8C00', '#BA55D3', '#40E0D0'];
         const pieces = 'ILJOTSZ';
         let nextQueue = [];
 
@@ -157,13 +169,10 @@
             const matrix = createPiece(type);
             ctx.clearRect(0, 0, 60, 60);
             ctx.fillStyle = colors[pieces.indexOf(type) + 1];
-            
             const size = 12;
             matrix.forEach((row, y) => {
                 row.forEach((value, x) => {
-                    if (value !== 0) {
-                        ctx.fillRect(x * size + 10, y * size + 10, size - 1, size - 1);
-                    }
+                    if (value !== 0) ctx.fillRect(x * size + 10, y * size + 10, size - 1, size - 1);
                 });
             });
         }
@@ -178,12 +187,9 @@
             return false;
         }
 
-        function createMatrix(w, h) {
-            return Array.from({length: h}, () => new Array(w).fill(0));
-        }
+        function createMatrix(w, h) { return Array.from({length: h}, () => new Array(w).fill(0)); }
 
         function draw() {
-            // 배경을 투명하게 지워서 뒤의 캐릭터 이미지가 보이게 함
             context.clearRect(0, 0, canvas.width, canvas.height);
             drawMatrix(arena, {x: 0, y: 0});
             drawMatrix(player.matrix, player.pos);
@@ -194,7 +200,6 @@
                 row.forEach((value, x) => {
                     if (value !== 0) {
                         context.fillStyle = colors[value];
-                        // 블록 테두리를 살짝 그려서 더 예쁘게 만듦
                         context.fillRect(x + offset.x, y + offset.y, 1, 1);
                         context.lineWidth = 0.05;
                         context.strokeStyle = 'white';
@@ -295,17 +300,10 @@
         const player = { pos: {x: 0, y: 0}, matrix: null, score: 0, highScore: 0 };
 
         document.addEventListener('keydown', event => {
-            if (event.keyCode === 37) {
-                player.pos.x--;
-                if (collide(arena, player)) player.pos.x++;
-            } else if (event.keyCode === 39) {
-                player.pos.x++;
-                if (collide(arena, player)) player.pos.x--;
-            } else if (event.keyCode === 40) {
-                playerDrop();
-            } else if (event.keyCode === 32) {
-                playerRotate(1);
-            }
+            if (event.keyCode === 37) { player.pos.x--; if (collide(arena, player)) player.pos.x++; }
+            else if (event.keyCode === 39) { player.pos.x++; if (collide(arena, player)) player.pos.x--; }
+            else if (event.keyCode === 40) { playerDrop(); }
+            else if (event.keyCode === 32) { playerRotate(1); }
         });
 
         playerReset();
